@@ -102,6 +102,7 @@ dependencies {
     // DI
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
+    implementation(libs.androidx.hilt.navigation.compose)
 
     // Database + storage
     implementation(libs.room.runtime)
@@ -114,6 +115,7 @@ dependencies {
     // Background work
     implementation(libs.work.runtime.ktx)
     implementation(libs.hilt.work)
+    kapt(libs.androidx.hilt.compiler)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
