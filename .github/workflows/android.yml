@@ -17,8 +17,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # GitHub-hosted runners ship the Android SDK preinstalled
+      # ($ANDROID_HOME with sdkmanager on PATH). Install the API 34
+      # components this project needs. (Replaces the third-party
+      # setup-android action, which is incompatible with current runners.)
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        run: |
+          sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+          yes | sdkmanager --licenses > /dev/null
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
