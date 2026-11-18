@@ -8,6 +8,9 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -43,7 +46,7 @@ jobs:
           set -o pipefail
           ./gradlew :app:testDebugUnitTest :app:assembleDebug --stacktrace --console=plain 2>&1 | tee gradle-build.log
 
-      # Publish compiler/test errors as a commit comment so they are readable
+      # Publish compiler/test errors as a GitHub issue so they are readable
       # without access to the raw job logs.
       - name: Publish build errors
         if: failure()
@@ -51,16 +54,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            echo '### Build failed — diagnostics'
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "Commit: ${{ github.sha }}"
+            echo
             echo '```'
-            grep -E "^(e: |w: .*error|FAILED|.*error:|.*Could not|> Task .* FAILED)" gradle-build.log | head -100 || true
+            grep -E "^(e: |FAILED|.*> Could not|.*error:|> Task .* FAILED)" gradle-build.log | head -120 || true
             echo '--- tail ---'
-            tail -40 gradle-build.log
+            tail -60 gradle-build.log
             echo '```'
           } > diagnostics.md
-          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
-            -F body=@diagnostics.md -f path="build" -F position=1 || \
-          gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/comments" -F body=@diagnostics.md || true
+          gh issue create \
+            --title "CI build diagnostics" \
+            --body-file diagnostics.md \
+            --label "ci" || gh issue create --title "CI build diagnostics" --body-file diagnostics.md
 
       - name: Upload debug APK
         if: success()
