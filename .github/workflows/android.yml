@@ -17,12 +17,20 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # GitHub-hosted runners ship the Android SDK preinstalled
-      # ($ANDROID_HOME with sdkmanager on PATH). Install the API 34
-      # components this project needs. (Replaces the third-party
-      # setup-android action, which is incompatible with current runners.)
+      # Install Android command line tools + API 34 components.
+      # (Runner images vary in whether sdkmanager is on PATH, so we
+      # fetch cmdline-tools directly — no runner-internal assumptions.)
       - name: Set up Android SDK
         run: |
+          export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          cd "$ANDROID_HOME/cmdline-tools"
+          curl -fsSL -o cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdtools.zip
+          mv cmdline-tools latest
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
           sdkmanager --install "platforms;android-34" "build-tools;34.0.0" "platform-tools"
           yes | sdkmanager --licenses > /dev/null
 
