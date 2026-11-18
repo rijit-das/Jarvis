@@ -93,7 +93,7 @@ class ClapDetector(
                 if (now - lastTriggerAt < COOLDOWN_MS) continue
                 if (firstClapAt == 0L) {
                     firstClapAt = now
-                } else if (now - firstClapAt in DOUBLE_CLAP_WINDOW_MS) {
+                } else if (now - firstClapAt <= DOUBLE_CLAP_WINDOW_MS) {
                     // Validated double clap.
                     _state.value = ClapState.TRIGGERED
                     onClap()

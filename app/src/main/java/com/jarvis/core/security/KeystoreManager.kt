@@ -25,6 +25,7 @@ class KeystoreManager {
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val GCM_TAG_BITS = 128
         private const val IV_SIZE = 12
+        private const val DB_SECRET_KEY = "db_passphrase_secret"
     }
 
     private val keyStore: KeyStore = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
@@ -91,5 +92,4 @@ class KeystoreManager {
     /** Wraps a raw key (used only for tests / fallback paths). */
     fun rawKey(bytes: ByteArray): SecretKey = SecretKeySpec(bytes, "AES")
 
-    private const val DB_SECRET_KEY = "db_passphrase_secret"
 }

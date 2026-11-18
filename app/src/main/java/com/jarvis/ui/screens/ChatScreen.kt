@@ -99,7 +99,7 @@ class ChatViewModel @Inject constructor(
         _pendingConfirmation.value = null
         val continuation = pendingResolution
         pendingResolution = null
-        if (continuation?.isActive == true) continuation.resume(approved)
+        if (continuation?.isActive == true) continuation.resumeWith(Result.success(approved))
     }
 
     fun send(text: String) {

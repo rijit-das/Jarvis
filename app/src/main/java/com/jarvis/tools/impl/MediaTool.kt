@@ -1,9 +1,11 @@
 package com.jarvis.tools.impl
 
+import android.content.ComponentName
 import android.content.Context
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
-import android.os.Build
+import com.jarvis.core.permissions.PermissionManager
+import com.jarvis.notifications.JarvisNotificationListener
 import com.jarvis.tools.Tool
 import com.jarvis.tools.ToolResult
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -12,18 +14,33 @@ import javax.inject.Singleton
 
 /**
  * Controls the active media session (play/pause/next/previous) via
- * MediaSessionManager. If no session is active, reports that honestly.
+ * MediaSessionManager.
+ *
+ * Android only exposes other apps' media sessions to notification-listener
+ * components, so this requires the user to enable notification access.
+ * Without it, every action reports that honestly instead of failing silently.
  */
 @Singleton
 class MediaTool @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val permissionManager: PermissionManager
 ) {
+    /** Human-readable reason media control is unavailable, or null if usable. */
+    fun unavailableReason(): String? {
+        if (!permissionManager.isNotificationListenerEnabled()) {
+            return "Media control needs notification access so JARVIS can see the " +
+                "active media session. Enable it in Settings > Permissions."
+        }
+        return null
+    }
+
     private fun activeController(): MediaController? {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) return null
+        if (unavailableReason() != null) return null
         val manager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
             ?: return null
         return try {
-            manager.activeSessions.firstOrNull()
+            val component = ComponentName(context, JarvisNotificationListener::class.java)
+            manager.getActiveSessions(component).firstOrNull()
         } catch (_: SecurityException) {
             null
         }
@@ -41,7 +58,8 @@ class MediaTool @Inject constructor(
         override suspend fun execute(arguments: Map<String, String>): ToolResult {
             val controller = mediaTool.activeController()
                 ?: return ToolResult.Failure(
-                    spoken = "No media is currently active. Start music in another app first.",
+                    spoken = mediaTool.unavailableReason()
+                        ?: "No media is currently active. Start music in another app first.",
                     reason = "no active media session"
                 )
             controller.transportControls.play()
@@ -61,7 +79,7 @@ class MediaTool @Inject constructor(
         override suspend fun execute(arguments: Map<String, String>): ToolResult {
             val controller = mediaTool.activeController()
                 ?: return ToolResult.Failure(
-                    spoken = "No media is currently active.",
+                    spoken = mediaTool.unavailableReason() ?: "No media is currently active.",
                     reason = "no active media session"
                 )
             controller.transportControls.pause()
@@ -81,7 +99,7 @@ class MediaTool @Inject constructor(
         override suspend fun execute(arguments: Map<String, String>): ToolResult {
             val controller = mediaTool.activeController()
                 ?: return ToolResult.Failure(
-                    spoken = "No media is currently active.",
+                    spoken = mediaTool.unavailableReason() ?: "No media is currently active.",
                     reason = "no active media session"
                 )
             controller.transportControls.skipToNext()
@@ -101,7 +119,7 @@ class MediaTool @Inject constructor(
         override suspend fun execute(arguments: Map<String, String>): ToolResult {
             val controller = mediaTool.activeController()
                 ?: return ToolResult.Failure(
-                    spoken = "No media is currently active.",
+                    spoken = mediaTool.unavailableReason() ?: "No media is currently active.",
                     reason = "no active media session"
                 )
             controller.transportControls.skipToPrevious()

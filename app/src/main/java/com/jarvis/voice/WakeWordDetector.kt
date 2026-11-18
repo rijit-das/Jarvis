@@ -48,8 +48,8 @@ class WakeWordDetector @Inject constructor(
         if (armed) return
         armed = true
         _state.value = WakeWordState.ARMED
-        speechRecognizerManager.onWakeResult = { transcript ->
-            if (!armed) return@onWakeResult
+        speechRecognizerManager.onWakeResult = wake@{ transcript ->
+            if (!armed) return@wake
             if (isWakePhrase(transcript)) {
                 _state.value = WakeWordState.TRIGGERED
                 onWakeWord?.invoke()

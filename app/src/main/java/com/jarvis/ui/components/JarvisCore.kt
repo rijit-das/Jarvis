@@ -91,10 +91,10 @@ fun JarvisCore(
 
     val tiltModifier = if (interactive) {
         Modifier.pointerInput(Unit) {
-            detectDragGestures { change ->
+            detectDragGestures { change, dragAmount ->
                 change.consume()
-                tiltY = (tiltY + change.positionChange().x * 0.25f).coerceIn(-28f, 28f)
-                tiltX = (tiltX - change.positionChange().y * 0.25f).coerceIn(-28f, 28f)
+                tiltY = (tiltY + dragAmount.x * 0.25f).coerceIn(-28f, 28f)
+                tiltX = (tiltX - dragAmount.y * 0.25f).coerceIn(-28f, 28f)
             }
         }
     } else {
