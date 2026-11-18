@@ -3,7 +3,7 @@ package com.jarvis.voice
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.speech.RecognitionService
+import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,7 +46,7 @@ class SpeechRecognizerManager @Inject constructor(
     private var recognizer: SpeechRecognizer? = null
     private var wakeMode = false
 
-    fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionServiceAvailable(context)
+    fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
 
     /** Manual voice input. */
     fun startListening(localeTag: String = "en-US") {
@@ -71,7 +71,7 @@ class SpeechRecognizerManager @Inject constructor(
         _partial.value = ""
         val created = SpeechRecognizer.createSpeechRecognizer(context)
         recognizer = created
-        created.setRecognitionListener(object : RecognitionService.Callback {
+        created.setRecognitionListener(object : RecognitionListener {
             override fun onBeginningOfSpeech() = Unit
             override fun onRmsChanged(rmsdB: Float) = Unit
             override fun onBufferReceived(buffer: ByteArray) = Unit

@@ -45,7 +45,9 @@ import com.jarvis.ui.theme.JarvisGradientEnd
 import com.jarvis.ui.theme.JarvisGradientStart
 import com.jarvis.ui.theme.JarvisGlass
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -72,30 +74,32 @@ class ChatViewModel @Inject constructor(
     val isSending: StateFlow<Boolean> = _isSending.asStateFlow()
 
     init {
-        // Route tool confirmations through a dialog.
+        // Route tool confirmations through a dialog. The handler suspends the
+        // caller until the UI resolves it (or the ViewModel is cleared).
         toolExecutor.confirmationHandler = { description ->
             _pendingConfirmation.value = description
-            // Suspend until the UI resolves it.
-            kotlinx.coroutines.suspendCancellableCoroutine { continuation ->
+            suspendCancellableCoroutine { continuation ->
                 pendingResolution = continuation
+                continuation.invokeOnCancellation { pendingResolution = null }
             }
         }
     }
 
-    private var pendingResolution: ((Boolean) -> Unit)? = null
+    private var pendingResolution: CancellableContinuation<Boolean>? = null
 
     override fun onCleared() {
         // Never leave a tool execution suspended on a dead confirmation handler.
         toolExecutor.confirmationHandler = null
-        pendingResolution?.invoke(false)
+        pendingResolution?.cancel()
         pendingResolution = null
         super.onCleared()
     }
 
     fun resolveConfirmation(approved: Boolean) {
         _pendingConfirmation.value = null
-        pendingResolution?.invoke(approved)
+        val continuation = pendingResolution
         pendingResolution = null
+        if (continuation?.isActive == true) continuation.resume(approved)
     }
 
     fun send(text: String) {

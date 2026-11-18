@@ -56,7 +56,7 @@ class AssistantOrchestrator @Inject constructor(
                 needsClarification = true
             )
             IntentType.UNKNOWN -> handleUnknown(text)
-            else -> routeToTool(intent.type.name.lowercase(), intent.entities)
+            else -> routeToTool(toolNameFor(intent.type), intent.entities)
         }
 
         context.recordTurn("assistant", response.spoken)
