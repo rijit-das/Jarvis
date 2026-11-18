@@ -14,7 +14,7 @@ import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
-import org.mockito.kotlin.onBlocking
+import org.mockito.kotlin.stub
 
 /**
  * Orchestrator routing tests. The intent engine and context are real;
@@ -26,7 +26,7 @@ class AssistantOrchestratorTest {
         toolExecutor: ToolExecutor,
         onlineProvider: OnlineProvider
     ): AssistantOrchestrator {
-        val activityRepository = mock<ActivityRepository> {
+        val activityRepository = mock<ActivityRepository>().stub {
             onBlocking { recordTurn(any(), any()) } doReturn Unit
         }
         return AssistantOrchestrator(
@@ -48,8 +48,8 @@ class AssistantOrchestratorTest {
     }
 
     @Test
-    fun `time request routes to time tool`() = runTest {
-        val toolExecutor = mock<ToolExecutor> {
+    fun `time request routes to the time tool`() = runTest {
+        val toolExecutor = mock<ToolExecutor>().stub {
             onBlocking { execute(any(), any()) } doReturn ToolResult.Success("It's 3:00 PM.")
         }
         val onlineProvider = mock<OnlineProvider>()
@@ -58,9 +58,21 @@ class AssistantOrchestratorTest {
     }
 
     @Test
+    fun `media intent routes to media tool names`() = runTest {
+        // Regression: routing used to derive names from the enum, producing
+        // "play_media" while the registry declares "media_play".
+        val toolExecutor = mock<ToolExecutor>().stub {
+            onBlocking { execute(any(), any()) } doReturn ToolResult.Success("Playing.")
+        }
+        val onlineProvider = mock<OnlineProvider>()
+        val response = orchestrator(toolExecutor, onlineProvider).handleUserText("play some music")
+        assertEquals("Playing.", response.spoken)
+    }
+
+    @Test
     fun `unknown intent explains limits when online is gated`() = runTest {
         val toolExecutor = mock<ToolExecutor>()
-        val onlineProvider = mock<OnlineProvider> {
+        val onlineProvider = mock<OnlineProvider>().stub {
             onBlocking { gateReason() } doReturn "Offline mode is on."
         }
         val response = orchestrator(toolExecutor, onlineProvider).handleUserText("Do something weird")
@@ -72,7 +84,7 @@ class AssistantOrchestratorTest {
     @Test
     fun `unknown intent uses online provider when gates pass`() = runTest {
         val toolExecutor = mock<ToolExecutor>()
-        val onlineProvider = mock<OnlineProvider> {
+        val onlineProvider = mock<OnlineProvider>().stub {
             onBlocking { gateReason() } doReturn null
             onBlocking { respond(any()) } doReturn Result.success("Online answer")
         }

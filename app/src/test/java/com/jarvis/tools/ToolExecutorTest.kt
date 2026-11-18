@@ -6,8 +6,10 @@ import com.jarvis.core.security.AuditLogger
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.stub
 
 class ToolExecutorTest {
 
@@ -31,7 +33,7 @@ class ToolExecutorTest {
         registry: ToolRegistry,
         permissionManager: PermissionManager
     ): ToolExecutor {
-        val auditLogger = mock<AuditLogger> {
+        val auditLogger = mock<AuditLogger>().stub {
             on { log(any(), any()) } doReturn Unit
         }
         return ToolExecutor(
@@ -55,7 +57,7 @@ class ToolExecutorTest {
         val registry = ToolRegistry().apply {
             register(fakeTool("needs_mic", permission = "android.permission.RECORD_AUDIO"))
         }
-        val permissionManager = mock<PermissionManager> {
+        val permissionManager = mock<PermissionManager>().stub {
             on { isGranted(any()) } doReturn false
         }
         val exec = executor(registry, permissionManager)
