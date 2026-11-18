@@ -83,11 +83,19 @@ object DurationParser {
 
     /** Human-readable duration, e.g. "5 minutes", "1 hour 30 minutes". */
     fun formatDuration(millis: Long): String {
-        if (millis < 60_000L) return "${millis / 1_000} seconds"
+        if (millis < 60_000L) {
+            val seconds = millis / 1_000L
+            return "$seconds ${plural(seconds, "second")}"
+        }
         val minutes = millis / 60_000L
-        if (minutes < 60L) return "$minutes minutes"
+        if (minutes < 60L) return "$minutes ${plural(minutes, "minute")}"
         val hours = minutes / 60L
         val remMin = minutes % 60L
-        return if (remMin == 0L) "$hours hours" else "$hours hours $remMin minutes"
+        val hourText = "$hours ${plural(hours, "hour")}"
+        return if (remMin == 0L) hourText
+        else "$hourText $remMin ${plural(remMin, "minute")}"
     }
+
+    private fun plural(value: Long, unit: String): String =
+        if (value == 1L) unit else "${unit}s"
 }

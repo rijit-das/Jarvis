@@ -26,9 +26,9 @@ class AssistantOrchestratorTest {
         toolExecutor: ToolExecutor,
         onlineProvider: OnlineProvider
     ): AssistantOrchestrator {
-        val activityRepository = mock<ActivityRepository>().stub {
-            onBlocking { recordTurn(any(), any()) } doReturn Unit
-        }
+        // recordTurn returns Unit; an unstubbed mock is a no-op, and stubbing
+        // a void/suspend-Unit call with a return value is a Mockito error.
+        val activityRepository = mock<ActivityRepository>()
         return AssistantOrchestrator(
             intentEngine = IntentEngine(),
             context = ConversationContext(),

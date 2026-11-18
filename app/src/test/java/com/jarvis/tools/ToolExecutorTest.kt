@@ -7,7 +7,6 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.kotlin.any
-import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.stub
 
@@ -33,9 +32,8 @@ class ToolExecutorTest {
         registry: ToolRegistry,
         permissionManager: PermissionManager
     ): ToolExecutor {
-        val auditLogger = mock<AuditLogger>().stub {
-            on { log(any(), any()) } doReturn Unit
-        }
+        // log() returns Unit; an unstubbed mock is already a no-op.
+        val auditLogger = mock<AuditLogger>()
         return ToolExecutor(
             registry = registry,
             permissionManager = permissionManager,

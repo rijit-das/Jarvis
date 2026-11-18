@@ -25,7 +25,7 @@ class IntentEngine @Inject constructor() {
             return Intent(IntentType.GREETING, text)
         }
         if (lower.contains("thank")) return Intent(IntentType.THANK_YOU, text)
-        if (lower.matches(Regex("""(bye|goodbye|good night|see you).*)"""))) {
+        if (lower.matches(Regex("""(bye|goodbye|good night|see you).*"""))) {
             return Intent(IntentType.FAREWELL, text)
         }
         if (lower.contains("what can you do") || lower == "help" || lower.startsWith("help ")) {
