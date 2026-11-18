@@ -7,14 +7,26 @@ import android.content.Intent
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.core.app.NotificationCompat
+import com.jarvis.data.local.ReminderDao
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Fires when a timer/reminder alarm elapses. Posts a high-priority
- * notification and vibrates. Marks the persisted reminder delivered.
+ * notification, vibrates, and marks the persisted reminder delivered so it
+ * is never re-fired after a reboot.
  */
 @AndroidEntryPoint
 class ReminderReceiver : BroadcastReceiver() {
+
+    @Inject
+    lateinit var reminderDao: ReminderDao
+
+    @Inject
+    lateinit var scope: CoroutineScope
 
     override fun onReceive(context: Context, intent: Intent) {
         val message = intent.getStringExtra(EXTRA_MESSAGE) ?: "Reminder"
@@ -34,8 +46,14 @@ class ReminderReceiver : BroadcastReceiver() {
         vibrator?.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE))
 
         if (reminderId >= 0) {
-            // Persisted reminders are marked delivered by the worker path;
-            // here we only notify. BootReceiver reschedules pending ones.
+            val pendingResult = goAsync()
+            scope.launch(Dispatchers.IO) {
+                try {
+                    reminderDao.markDelivered(reminderId)
+                } finally {
+                    pendingResult.finish()
+                }
+            }
         }
     }
 

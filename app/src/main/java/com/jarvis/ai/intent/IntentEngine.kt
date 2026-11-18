@@ -113,6 +113,12 @@ class IntentEngine @Inject constructor() {
             return Intent(IntentType.FORGET, text, entities)
         }
 
+        // --- Contextual repeat (must precede "open ..." so
+        // "open that again" resolves against context, not as an app name) ---
+        if (lower == "open that again" || lower == "do that again" || lower == "repeat") {
+            return Intent(IntentType.REPEAT_LAST, text)
+        }
+
         // --- Apps ---
         if (lower.startsWith("open ")) {
             val entities = mutableMapOf<String, String>()
@@ -146,11 +152,6 @@ class IntentEngine @Inject constructor() {
         // --- Notifications ---
         if (lower.contains("notification")) {
             return Intent(IntentType.READ_NOTIFICATIONS, text)
-        }
-
-        // --- Contextual repeat ---
-        if (lower == "open that again" || lower == "do that again" || lower == "repeat") {
-            return Intent(IntentType.REPEAT_LAST, text)
         }
 
         return Intent(IntentType.UNKNOWN, text, confidence = 0f)

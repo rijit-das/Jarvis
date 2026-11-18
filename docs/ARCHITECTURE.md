@@ -32,7 +32,7 @@ core (security, permissions, network, di, common)
 | `com.jarvis.ai.provider` | `AiProvider` abstraction; offline + online implementations |
 | `com.jarvis.ai.orchestrator` | Request pipeline: guard → intent → tool → response |
 | `com.jarvis.tools` | Tool contract, registry, executor, concrete tools |
-| `com.jarvis.voice` | STT, TTS, wake-word, clap detection, voice session |
+| `com.jarvis.voice` | STT, TTS, wake-word, clap detection, voice session, app-scoped activation manager |
 | `com.jarvis.memory` | Memory categories, retrieval, retention |
 | `com.jarvis.data.local` | Room entities/DAOs/database (SQLCipher) |
 | `com.jarvis.data.datastore` | Settings + secure settings repositories |

@@ -2,8 +2,11 @@ package com.jarvis.voice
 
 import com.jarvis.core.permissions.PermissionManager
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -16,6 +19,10 @@ enum class VoiceSessionState { IDLE, LISTENING, SPEAKING, ERROR }
  * Owns the microphone lifecycle. The mic is held ONLY during an active
  * session and released immediately when the session ends. All mic access
  * goes through here — nothing else in the app touches the microphone.
+ *
+ * Transcripts are exposed as a [SharedFlow] so multiple consumers (the voice
+ * screen, the app-scoped activation manager) can observe them without
+ * fighting over a single callback.
  */
 @Singleton
 class VoiceSessionManager @Inject constructor(
@@ -30,7 +37,8 @@ class VoiceSessionManager @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    var onTranscript: ((String) -> Unit)? = null
+    private val _transcripts = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val transcripts: SharedFlow<String> = _transcripts.asSharedFlow()
 
     fun startListening(localeTag: String = "en-US") {
         if (!permissionManager.hasMicrophone()) {
@@ -42,7 +50,7 @@ class VoiceSessionManager @Inject constructor(
         _state.value = VoiceSessionState.LISTENING
         speechRecognizerManager.onResult = { transcript ->
             _state.value = VoiceSessionState.IDLE
-            onTranscript?.invoke(transcript)
+            scope.launch { _transcripts.emit(transcript) }
         }
         speechRecognizerManager.onError = { message ->
             _state.value = VoiceSessionState.ERROR

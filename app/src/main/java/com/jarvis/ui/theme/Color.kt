@@ -12,3 +12,12 @@ val JarvisOnSurfaceDim = Color(0xFF94A3B8)
 val JarvisError = Color(0xFFF87171)
 val JarvisSuccess = Color(0xFF4ADE80)
 val JarvisWarning = Color(0xFFFBBF24)
+
+// 3D design palette
+val JarvisBlue = Color(0xFF60A5FA)
+val JarvisDeepBlue = Color(0xFF1E3A5F)
+val JarvisGlow = Color(0xFF67E8F9)
+val JarvisGradientStart = Color(0xFF22D3EE)
+val JarvisGradientEnd = Color(0xFF818CF8)
+val JarvisGlass = Color(0x14FFFFFF)
+val JarvisGlassBorder = Color(0x2EFFFFFF)

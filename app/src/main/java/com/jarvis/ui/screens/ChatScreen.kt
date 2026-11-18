@@ -1,6 +1,7 @@
 package com.jarvis.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +16,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +30,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -37,8 +40,10 @@ import androidx.lifecycle.viewModelScope
 import com.jarvis.ai.context.ConversationContext
 import com.jarvis.ai.orchestrator.AssistantOrchestrator
 import com.jarvis.tools.ToolExecutor
-import com.jarvis.tools.ToolResult
 import com.jarvis.ui.components.ConfirmationDialog
+import com.jarvis.ui.theme.JarvisGradientEnd
+import com.jarvis.ui.theme.JarvisGradientStart
+import com.jarvis.ui.theme.JarvisGlass
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -78,6 +83,14 @@ class ChatViewModel @Inject constructor(
     }
 
     private var pendingResolution: ((Boolean) -> Unit)? = null
+
+    override fun onCleared() {
+        // Never leave a tool execution suspended on a dead confirmation handler.
+        toolExecutor.confirmationHandler = null
+        pendingResolution?.invoke(false)
+        pendingResolution = null
+        super.onCleared()
+    }
 
     fun resolveConfirmation(approved: Boolean) {
         _pendingConfirmation.value = null
@@ -148,21 +161,49 @@ fun ChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
 @Composable
 private fun MessageBubble(message: ChatMessage) {
     val isUser = message.role == "user"
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = if (isUser) 48.dp else 0.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(
-                if (isUser) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surfaceVariant
+    val shape = RoundedCornerShape(
+        topStart = 18.dp,
+        topEnd = 18.dp,
+        bottomStart = if (isUser) 18.dp else 4.dp,
+        bottomEnd = if (isUser) 4.dp else 18.dp
+    )
+    val bubbleModifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = if (isUser) 48.dp else 0.dp)
+        .shadow(6.dp, shape)
+        .clip(shape)
+    if (isUser) {
+        Box(
+            modifier = bubbleModifier
+                .background(
+                    Brush.linearGradient(
+                        colors = listOf(JarvisGradientStart, JarvisGradientEnd)
+                    )
+                )
+                .padding(12.dp)
+        ) {
+            Text(text = message.text, color = Color.White)
+        }
+    } else {
+        Box(
+            modifier = bubbleModifier
+                .background(JarvisGlass)
+                .border(
+                    1.dp,
+                    Brush.linearGradient(
+                        colors = listOf(
+                            JarvisGradientStart.copy(alpha = 0.4f),
+                            JarvisGradientEnd.copy(alpha = 0.3f)
+                        )
+                    ),
+                    shape
+                )
+                .padding(12.dp)
+        ) {
+            Text(
+                text = message.text,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            .padding(12.dp)
-    ) {
-        Text(
-            text = message.text,
-            color = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer
-            else MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        }
     }
 }

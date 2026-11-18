@@ -20,10 +20,14 @@ enum class ListeningState { IDLE, LISTENING, PROCESSING, ERROR }
 /**
  * SpeechRecognizer wrapper with offline preference.
  *
- * - Requests `EXTRA_PREFER_OFFLINE` so on-device recognition is used when
- *   available.
- * - Surfaces partial results and errors instead of guessing.
- * - Reports recognizer availability so the UI can degrade to text input.
+ * Two modes share one recognizer instance (the platform allows only one at a
+ * time):
+ * - **Manual mode** ([startListening]): results go to [onResult].
+ * - **Wake mode** ([startWakeListening]): results go to [onWakeResult] so the
+ *   wake-word detector never fights the voice session for the callback.
+ *
+ * Starting either mode cancels the other. Both request
+ * `EXTRA_PREFER_OFFLINE` so on-device recognition is used when available.
  */
 @Singleton
 class SpeechRecognizerManager @Inject constructor(
@@ -36,13 +40,27 @@ class SpeechRecognizerManager @Inject constructor(
     val partial: StateFlow<String> = _partial.asStateFlow()
 
     var onResult: ((String) -> Unit)? = null
+    var onWakeResult: ((String) -> Unit)? = null
     var onError: ((String) -> Unit)? = null
 
     private var recognizer: SpeechRecognizer? = null
+    private var wakeMode = false
 
     fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionServiceAvailable(context)
 
+    /** Manual voice input. */
     fun startListening(localeTag: String = "en-US") {
+        wakeMode = false
+        startInternal(localeTag)
+    }
+
+    /** Wake-word listening. Results route to [onWakeResult]. */
+    fun startWakeListening(localeTag: String = "en-US") {
+        wakeMode = true
+        startInternal(localeTag)
+    }
+
+    private fun startInternal(localeTag: String) {
         if (!isAvailable()) {
             _state.value = ListeningState.ERROR
             onError?.invoke("No speech recognizer is installed on this device. Text input is still available.")
@@ -70,8 +88,13 @@ class SpeechRecognizerManager @Inject constructor(
                 _state.value = ListeningState.IDLE
                 val matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val text = matches?.firstOrNull()?.trim().orEmpty()
-                if (text.isNotEmpty()) onResult?.invoke(text)
-                else onError?.invoke("I didn't catch that. Please try again.")
+                if (text.isEmpty()) {
+                    onError?.invoke("I didn't catch that. Please try again.")
+                } else if (wakeMode) {
+                    onWakeResult?.invoke(text)
+                } else {
+                    onResult?.invoke(text)
+                }
             }
 
             override fun onPartialResults(partialResults: Bundle) {
@@ -101,6 +124,8 @@ class SpeechRecognizerManager @Inject constructor(
     }
 
     fun stopListening() {
+        // NOTE: wakeMode is intentionally NOT reset here — startInternal()
+        // calls stopListening() before setting the mode for the new session.
         try {
             recognizer?.cancel()
             recognizer?.destroy()

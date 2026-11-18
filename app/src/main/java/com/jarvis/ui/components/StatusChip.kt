@@ -40,6 +40,11 @@ fun StatusChip(
                     .background(if (online) JarvisSuccess else JarvisWarning)
             )
         },
-        label = { Text(label) }
+        label = { Text(label) },
+        colors = AssistChipDefaults.assistChipColors(
+            disabledLabelColor = MaterialTheme.colorScheme.onSurface,
+            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurface,
+            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface
+        )
     )
 }

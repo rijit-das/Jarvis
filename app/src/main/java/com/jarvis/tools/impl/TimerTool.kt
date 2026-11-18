@@ -43,7 +43,8 @@ class TimerTool @Inject constructor(
                 reason = "unparseable duration: $durationText"
             )
         val durationMs = triggerAt - System.currentTimeMillis()
-        scheduleAlarm(triggerAt, "Timer finished.", requestCode = 1001)
+        // Unique request code per timer so multiple timers don't overwrite each other.
+        scheduleAlarm(triggerAt, "Timer finished.", requestCode = (System.currentTimeMillis() % Int.MAX_VALUE).toInt())
         return ToolResult.Success(
             spoken = "Timer set for ${DurationParser.formatDuration(durationMs)}. I'll notify you when it's done."
         )

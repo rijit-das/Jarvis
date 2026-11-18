@@ -15,12 +15,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.jarvis.ui.components.JarvisBackground
 import com.jarvis.ui.screens.ActivityScreen
 import com.jarvis.ui.screens.ChatScreen
 import com.jarvis.ui.screens.DiagnosticsScreen
@@ -66,6 +68,7 @@ fun JarvisNavGraph() {
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         bottomBar = {
             if (showBottomBar) {
                 NavigationBar {
@@ -90,35 +93,37 @@ fun JarvisNavGraph() {
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Routes.HOME,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(Routes.HOME) {
-                HomeScreen(
-                    onOpenChat = { navController.navigate(Routes.CHAT) },
-                    onOpenVoice = { navController.navigate(Routes.VOICE) },
-                    onOpenSettings = { navController.navigate(Routes.SETTINGS) }
-                )
+        JarvisBackground {
+            NavHost(
+                navController = navController,
+                startDestination = Routes.HOME,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable(Routes.HOME) {
+                    HomeScreen(
+                        onOpenChat = { navController.navigate(Routes.CHAT) },
+                        onOpenVoice = { navController.navigate(Routes.VOICE) },
+                        onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+                    )
+                }
+                composable(Routes.CHAT) { ChatScreen() }
+                composable(Routes.VOICE) { VoiceScreen() }
+                composable(Routes.MEMORY) { MemoryScreen() }
+                composable(Routes.SETTINGS) {
+                    SettingsScreen(
+                        onOpenModelSettings = { navController.navigate(Routes.MODEL_SETTINGS) },
+                        onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
+                        onOpenPermissions = { navController.navigate(Routes.PERMISSIONS) },
+                        onOpenActivity = { navController.navigate(Routes.ACTIVITY) },
+                        onOpenDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) }
+                    )
+                }
+                composable(Routes.MODEL_SETTINGS) { ModelSettingsScreen() }
+                composable(Routes.PRIVACY) { PrivacyScreen() }
+                composable(Routes.PERMISSIONS) { PermissionsScreen() }
+                composable(Routes.ACTIVITY) { ActivityScreen() }
+                composable(Routes.DIAGNOSTICS) { DiagnosticsScreen() }
             }
-            composable(Routes.CHAT) { ChatScreen() }
-            composable(Routes.VOICE) { VoiceScreen() }
-            composable(Routes.MEMORY) { MemoryScreen() }
-            composable(Routes.SETTINGS) {
-                SettingsScreen(
-                    onOpenModelSettings = { navController.navigate(Routes.MODEL_SETTINGS) },
-                    onOpenPrivacy = { navController.navigate(Routes.PRIVACY) },
-                    onOpenPermissions = { navController.navigate(Routes.PERMISSIONS) },
-                    onOpenActivity = { navController.navigate(Routes.ACTIVITY) },
-                    onOpenDiagnostics = { navController.navigate(Routes.DIAGNOSTICS) }
-                )
-            }
-            composable(Routes.MODEL_SETTINGS) { ModelSettingsScreen() }
-            composable(Routes.PRIVACY) { PrivacyScreen() }
-            composable(Routes.PERMISSIONS) { PermissionsScreen() }
-            composable(Routes.ACTIVITY) { ActivityScreen() }
-            composable(Routes.DIAGNOSTICS) { DiagnosticsScreen() }
         }
     }
 }

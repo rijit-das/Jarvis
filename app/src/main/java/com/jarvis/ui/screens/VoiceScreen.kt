@@ -29,108 +29,40 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.jarvis.ai.orchestrator.AssistantOrchestrator
-import com.jarvis.data.datastore.SettingsRepository
-import com.jarvis.ui.components.AudioVisualizer
+import com.jarvis.ui.components.CoreState
+import com.jarvis.ui.components.GlassCard
+import com.jarvis.ui.components.JarvisCore
 import com.jarvis.ui.components.PermissionRationaleDialog
-import com.jarvis.voice.ClapDetector
 import com.jarvis.voice.SpeechRecognizerManager
-import com.jarvis.voice.TextToSpeechManager
+import com.jarvis.voice.VoiceActivationManager
 import com.jarvis.voice.VoiceSessionManager
 import com.jarvis.voice.VoiceSessionState
-import com.jarvis.voice.WakeWordDetector
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class VoiceViewModel @Inject constructor(
     private val voiceSessionManager: VoiceSessionManager,
     private val speechRecognizerManager: SpeechRecognizerManager,
-    private val textToSpeechManager: TextToSpeechManager,
-    private val orchestrator: AssistantOrchestrator,
-    private val settings: SettingsRepository,
-    private val wakeWordDetector: WakeWordDetector
+    private val voiceActivationManager: VoiceActivationManager
 ) : ViewModel() {
 
     val sessionState: StateFlow<VoiceSessionState> = voiceSessionManager.state
     val partial = speechRecognizerManager.partial
+    val error = voiceSessionManager.error
 
-    private val _lastTranscript = MutableStateFlow("")
-    val lastTranscript: StateFlow<String> = _lastTranscript.asStateFlow()
-
-    private val _lastResponse = MutableStateFlow("")
-    val lastResponse: StateFlow<String> = _lastResponse.asStateFlow()
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
-
-    private var clapDetector: ClapDetector? = null
-
-    init {
-        voiceSessionManager.onTranscript = { transcript ->
-            _lastTranscript.value = transcript
-            viewModelScope.launch {
-                val response = orchestrator.handleUserText(transcript)
-                _lastResponse.value = response.spoken
-                if (settings.voiceOutputEnabled.first()) {
-                    voiceSessionManager.speak(response.spoken)
-                }
-            }
-        }
-        // Keep TTS config in sync with Settings.
-        viewModelScope.launch {
-            combine(
-                settings.ttsRate, settings.ttsPitch, settings.voiceOutputEnabled
-            ) { rate, pitch, enabled -> Triple(rate, pitch, enabled) }
-                .collect { (rate, pitch, enabled) ->
-                    textToSpeechManager.configure(rate, pitch, enabled)
-                }
-        }
-        // Wake word: arm/disarm from Settings. On trigger, start a session.
-        wakeWordDetector.onWakeWord = { startListening() }
-        viewModelScope.launch {
-            settings.wakeWordEnabled.collect { enabled ->
-                if (enabled) wakeWordDetector.arm() else wakeWordDetector.disarm()
-            }
-        }
-        // Clap: start/stop detector from Settings. On double clap, listen.
-        viewModelScope.launch {
-            combine(
-                settings.clapEnabled, settings.clapThreshold
-            ) { enabled, threshold -> enabled to threshold }
-                .collect { (enabled, threshold) ->
-                    if (enabled) {
-                        clapDetector?.stop()
-                        clapDetector = ClapDetector(
-                            scope = viewModelScope,
-                            threshold = threshold,
-                            onClap = { startListening() }
-                        ).also { it.start() }
-                    } else {
-                        clapDetector?.stop()
-                        clapDetector = null
-                    }
-                }
-        }
-    }
+    // Transcript/response are owned by the app-scoped activation manager so
+    // wake-word and clap triggers work from any screen.
+    val lastTranscript: StateFlow<String> = voiceActivationManager.lastTranscript
+    val lastResponse: StateFlow<String> = voiceActivationManager.lastResponse
 
     fun startListening() {
-        _error.value = null
-        viewModelScope.launch {
-            val locale = settings.localeTag.first()
-            voiceSessionManager.startListening(locale)
-        }
+        voiceActivationManager.startSession()
     }
 
     fun stop() {
-        voiceSessionManager.stop()
+        voiceActivationManager.stopSession()
     }
 
     fun recognizerAvailable(): Boolean = speechRecognizerManager.isAvailable()
@@ -171,7 +103,13 @@ fun VoiceScreen(viewModel: VoiceViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.Center
     ) {
         val listening = sessionState == VoiceSessionState.LISTENING
-        AudioVisualizer(active = listening)
+        val coreState = when (sessionState) {
+            VoiceSessionState.LISTENING -> CoreState.LISTENING
+            VoiceSessionState.SPEAKING -> CoreState.SPEAKING
+            VoiceSessionState.ERROR -> CoreState.ERROR
+            VoiceSessionState.IDLE -> CoreState.IDLE
+        }
+        JarvisCore(state = coreState, interactive = false)
         Spacer(Modifier.height(16.dp))
         Text(
             text = when (sessionState) {
@@ -184,9 +122,13 @@ fun VoiceScreen(viewModel: VoiceViewModel = hiltViewModel()) {
         )
         Spacer(Modifier.height(8.dp))
         if (partial.isNotEmpty()) {
-            Text(partial, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Text(partial, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         } else if (transcript.isNotEmpty()) {
-            Text("You said: $transcript", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Text("You said: $transcript", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         error?.let {
             Spacer(Modifier.height(8.dp))
@@ -194,7 +136,9 @@ fun VoiceScreen(viewModel: VoiceViewModel = hiltViewModel()) {
         }
         if (response.isNotEmpty()) {
             Spacer(Modifier.height(8.dp))
-            Text(response, style = MaterialTheme.typography.bodyLarge)
+            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                Text(response, style = MaterialTheme.typography.bodyLarge)
+            }
         }
         Spacer(Modifier.height(32.dp))
         if (listening) {
