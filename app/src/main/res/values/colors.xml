@@ -1,0 +1,10 @@
+<resources>
+    <color name="jarvis_background">#FF05070D</color>
+    <color name="jarvis_surface">#FF0B1220</color>
+    <color name="jarvis_accent">#FF22D3EE</color>
+    <color name="jarvis_accent_dim">#FF0E7490</color>
+    <color name="jarvis_on_surface">#FFE2E8F0</color>
+    <color name="jarvis_on_surface_dim">#FF94A3B8</color>
+    <color name="jarvis_error">#FFF87171</color>
+    <color name="jarvis_success">#FF4ADE80</color>
+</resources>

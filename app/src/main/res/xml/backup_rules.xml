@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- JARVIS stores personal data locally. Exclude everything sensitive from
+     cloud backup. The encrypted database and secure prefs must never be
+     backed up in plaintext. -->
+<full-backup-content>
+    <exclude domain="database" path="jarvis.db" />
+    <exclude domain="sharedpref" path="jarvis_secure.xml" />
+    <exclude domain="file" path="datastore/" />
+</full-backup-content>
