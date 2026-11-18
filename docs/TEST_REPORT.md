@@ -21,7 +21,8 @@
 | Prompt-injection guard | `PromptInjectionGuardTest` |
 | Model manager capability tiers | `ModelManagerTest` |
 | Memory manager (CRUD, categories, retention) | `MemoryManagerTest` |
-| Orchestrator (offline routing, online consent gate) | `AssistantOrchestratorTest` |
+| Orchestrator (offline routing, tool-name mapping, online consent gate) | `AssistantOrchestratorTest` |
+| Wake-word phrase matching | `WakeWordDetectorTest` |
 | UI smoke (home renders, navigation) | `UiSmokeTest` (instrumented) |
 
 ## 3. Manual test checklist (maintainer, physical device)
@@ -40,8 +41,25 @@
 
 ## 4. Results
 
-- **Automated:** run in CI on every push (`testDebugUnitTest` + `assembleDebug`).
-  Results are visible in the GitHub Actions run for the commit.
+- **Automated (verified):** CI run
+  [44386195471](https://github.com/rijit-das/Jarvis/actions/runs/44386195471) on
+  commit `2c98e85` — **58 unit tests passed, 0 failed**, and
+  `:app:assembleDebug` produced `app-debug.apk` (uploaded as the
+  `jarvis-debug-apk` artifact). This is the first fully green build.
+- **Bugs this suite caught before release:**
+  - `IntentEngine` farewell regex was malformed (`(bye|goodbye|…).*)`) and threw
+    `PatternSyntaxException` on *every* classification pass — a crash, not a
+    failed assertion. Fixed; regression covered by `IntentEngineTest`.
+  - `DurationParser.formatDuration` emitted ungrammatical output
+    ("1 hours", "1 minutes"). Fixed with correct singular/plural forms.
+  - Media intents routed through `IntentType.name.lowercase()`, producing
+    `play_media` while the registry declares `media_play` (all four media
+    actions were unreachable). Fixed by explicit `toolNameFor()` mapping.
+- **Build-configuration bugs also fixed (would have broken every build):**
+  undeclared `hiltWork` catalog version, missing `kotlin-kapt` plugin, missing
+  `hilt-navigation-compose` / `androidx.hilt:hilt-compiler` /
+  `mockito-core` / `mockito-kotlin` dependencies, and wrong SQLCipher Maven
+  group (`net.sqlcipher` → `net.zetetic`).
 - **Static validation at authoring time:** brace/balance checks, manifest/code
   consistency, and dependency-version verification (see commit history).
 - **Device validation:** pending maintainer run of §3. This report will be

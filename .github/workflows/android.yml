@@ -8,9 +8,6 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -45,32 +42,6 @@ jobs:
         run: |
           set -o pipefail
           ./gradlew :app:testDebugUnitTest :app:assembleDebug --stacktrace --console=plain --continue 2>&1 | tee gradle-build.log
-
-      # Publish compiler/test errors as a GitHub issue so they are readable
-      # without access to the raw job logs.
-      - name: Publish build errors
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          {
-            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-            echo "Commit: ${{ github.sha }}"
-            echo
-            echo '```'
-            grep -E "^(e: |FAILED|.*> Could not|.*error:|> Task .* FAILED|.*tests? completed)" gradle-build.log | head -120 || true
-            echo '--- failing tests ---'
-            find app/build/test-results -name "*.xml" -exec grep -l "<failure" {} \; 2>/dev/null | while read -r f; do
-              grep -A 6 "<failure" "$f" | head -40
-            done || true
-            echo '--- tail ---'
-            tail -60 gradle-build.log
-            echo '```'
-          } > diagnostics.md
-          gh issue create \
-            --title "CI build diagnostics" \
-            --body-file diagnostics.md \
-            --label "ci" || gh issue create --title "CI build diagnostics" --body-file diagnostics.md
 
       - name: Upload debug APK
         if: success()
