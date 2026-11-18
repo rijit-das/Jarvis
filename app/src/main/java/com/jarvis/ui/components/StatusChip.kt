@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -29,7 +28,6 @@ fun StatusChip(
 ) {
     AssistChip(
         onClick = {},
-        enabled = false,
         modifier = modifier,
         leadingIcon = {
             Icon(icon, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -42,11 +40,6 @@ fun StatusChip(
                     .background(if (online) JarvisSuccess else JarvisWarning)
             )
         },
-        label = { Text(label) },
-        colors = AssistChipDefaults.assistChipColors(
-            disabledLabelColor = MaterialTheme.colorScheme.onSurface,
-            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurface,
-            disabledTrailingIconColor = MaterialTheme.colorScheme.onSurface
-        )
+        label = { Text(label, color = MaterialTheme.colorScheme.onSurface) }
     )
 }
