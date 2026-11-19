@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">JARVIS</string>
+    <string name="voice_channel_name">Voice session</string>
+    <string name="voice_channel_desc">JARVIS is listening. Tap to open.</string>
+    <string name="reminder_channel_name">Reminders</string>
+    <string name="reminder_channel_desc">JARVIS reminders</string>
+    <string name="notification_listener_label">JARVIS notification access</string>
+</resources>
